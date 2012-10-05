@@ -2,7 +2,7 @@ NAME
     WWW::PunchTab - PunchTab REST API
 
 VERSION
-    version 0.01
+    version 0.02
 
 SYNOPSIS
         use WWW::PunchTab;
@@ -49,6 +49,18 @@ DESCRIPTION
             {'id' => '2', 'first_name' => 'Fayland', 'last_name' => 'Lam', 'email' => 'fayland@gmail.com'}
         ) or die $pt->errstr;
 
+   sso_auth_js
+        print $pt->sso_auth_js({'id' => '2', 'first_name' => 'Fayland', 'last_name' => 'Lam', 'email' => 'fayland@gmail.com'});
+
+    js sso auth example:
+
+        var _pt_pre_config = {
+            auth_request: 'xxx',
+            signature: 'xxx',
+            timestamp: 1348843966,
+            client_id: 123
+        };
+
    auth_logout
         my $status = $pt->auth_logout or die $pt->errstr;
 
@@ -63,6 +75,9 @@ DESCRIPTION
 
    create_activity
          my $x = $pt->create_activity('view', 200) or die $pt->errstr; # view with 200 points
+
+   redeem_reward
+         my $x = $pt->redeem_reward($reward_id) or die $pt->errstr;
 
    leaderboard
          my $leaderboard = $pt->leaderboard() or die $pt->errstr;

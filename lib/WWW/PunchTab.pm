@@ -1,6 +1,6 @@
 package WWW::PunchTab;
 {
-    $WWW::PunchTab::VERSION = '0.01';
+    $WWW::PunchTab::VERSION = '0.02';
 }
 
 # ABSTRACT: PunchTab REST API
@@ -64,6 +64,26 @@ sub sso_auth {
     return $data->{authResponse}->{accessToken};
 }
 
+sub sso_auth_js {
+    my $self = shift;
+    my %user = @_ % 2 ? %{ $_[0] } : @_;
+
+    my $auth_request = encode_base64( encode_json( \%user ) );
+    $auth_request =~ s/\n//g;
+    my $timestamp = time();
+    my $signature = Digest::SHA::hmac_sha1_hex( "$auth_request $timestamp",
+        $self->{secret_key} );
+
+    return <<JS;
+var _pt_pre_config = {
+    auth_request: '$auth_request',
+    signature: '$signature',
+    timestamp: $timestamp,
+    client_id: $self->{client_id}
+};
+JS
+}
+
 sub auth_logout {
     my ($self) = @_;
 
@@ -120,6 +140,16 @@ sub create_activity {
     return __deal_resp($resp);
 }
 
+sub redeem_reward {
+    my ( $self, $reward_id ) = @_;
+    my $access_token = $self->{__access_token};
+    my $resp         = $self->{ua}->post(
+"https://api.punchtab.com/v1/activity/redeem?access_token=$access_token",
+        [ reward_id => $reward_id, ]
+    );
+    return __deal_resp($resp);
+}
+
 sub leaderboard {
     my $self         = shift;
     my %args         = @_ % 2 ? %{ $_[0] } : (@_);
@@ -138,13 +168,9 @@ sub reward {
     my ( $self, $limit ) = @_;
 
     my $access_token = $self->{__access_token};
-    my $resp         = $self->{ua}->get(
-        "https://api.punchtab.com/v1/reward",
-        [
-            access_token => $access_token,
-            $limit ? ( limit => $limit ) : (),
-        ]
-    );
+    my $url = "http://api.punchtab.com/v1/reward?access_token=" . $access_token;
+    $url .= "&limit=$limit" if $limit;
+    my $resp = $self->{ua}->get($url);
     return __deal_resp($resp);
 }
 
@@ -184,7 +210,7 @@ WWW::PunchTab - PunchTab REST API
 
 =head1 VERSION
 
-version 0.01
+version 0.02
 
 =head1 SYNOPSIS
 
@@ -240,6 +266,19 @@ All required.
         {'id' => '2', 'first_name' => 'Fayland', 'last_name' => 'Lam', 'email' => 'fayland@gmail.com'}
     ) or die $pt->errstr;
 
+=head3 sso_auth_js
+
+    print $pt->sso_auth_js({'id' => '2', 'first_name' => 'Fayland', 'last_name' => 'Lam', 'email' => 'fayland@gmail.com'});
+
+js sso auth example:
+
+    var _pt_pre_config = {
+        auth_request: 'xxx',
+        signature: 'xxx',
+        timestamp: 1348843966,
+        client_id: 123
+    };
+
 =head3 auth_logout
 
     my $status = $pt->auth_logout or die $pt->errstr;
@@ -258,6 +297,10 @@ return 'connected' or 'disconnected'
 =head3 create_activity
 
      my $x = $pt->create_activity('view', 200) or die $pt->errstr; # view with 200 points
+
+=head3 redeem_reward
+
+     my $x = $pt->redeem_reward($reward_id) or die $pt->errstr;
 
 =head3 leaderboard
 

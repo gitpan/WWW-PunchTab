@@ -18,4 +18,4 @@ requires:
   LWP::UserAgent: 0
 resources:
   repository: git://github.com/fayland/p5-WWW-PunchTab.git
-version: 0.01
+version: 0.02
